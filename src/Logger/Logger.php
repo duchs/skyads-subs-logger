@@ -39,17 +39,26 @@ class Logger
     private $slackChannel;
     private $slackUsername;
 
-    public function __construct($rootLogDir, $slackToken, $slackChannel, $slackUsername)
+    public function __construct($rootLogDir, $slackToken, $slackChannel, $slackUsername, $env = 'prod')
     {
         $this->rootLogDir = $rootLogDir;
         $this->slackToken = $slackToken;
         $this->slackChannel = $slackChannel;
         $this->slackUsername = $slackUsername;
 
-        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo/mo.log';
-        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo/mo_error.log';
-        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt/mt_success.log';
-        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt/mt_error.log';
+        $env = 'prod' == $env ? '' : '_'.$env;
+        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo/mo'.$env.'.log';
+        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo/mo_error'.$env.'.log';
+        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt/mt_success'.$env.'.log';
+        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt/mt_error'.$env.'.log';
+
+        //Create sub-dir if it's not exist
+        $arr = ['mo', 'mt'];
+        foreach ($arr as $item) {
+            if (!is_dir($rootLogDir.'/'.$item)) {
+                mkdir($rootLogDir.'/'.$item, 0777, true);
+            }
+        }
     }
 
     public function logMo($message, $data = [], $isNoticeSlack = false)
