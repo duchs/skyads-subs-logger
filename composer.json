@@ -1,0 +1,26 @@
+{
+    "name": "skyads/subs-logger",
+    "type": "library",
+    "description": "Logger for subs system of Skyads",
+    "keywords": [
+        "skyads",
+        "subs",
+        "logger"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Duc Ho",
+            "email": "syduc91@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.5",
+        "monolog/monolog": "~1.11"
+    },
+    "autoload": {
+        "psr-4": {
+            "Skyads\\Logger\\": "src/"
+        }
+    }
+}
