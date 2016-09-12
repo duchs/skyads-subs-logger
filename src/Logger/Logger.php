@@ -49,7 +49,7 @@ class Logger
         self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo/mo.log';
         self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo/mo_error.log';
         self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt/mt_success.log';
-        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mt/mt_error.log';
+        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt/mt_error.log';
     }
 
     public function logMo($message, $data = [], $isNoticeSlack = false)
