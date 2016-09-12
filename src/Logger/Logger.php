@@ -1,6 +1,6 @@
 <?php
 
-namespace Logger;
+namespace Skyads\Logger;
 
 use Monolog\Formatter\LineFormatter;
 use Monolog\Formatter\LogstashFormatter;
