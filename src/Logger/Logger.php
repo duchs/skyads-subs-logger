@@ -4,8 +4,8 @@ namespace Skyads\Logger;
 
 use Monolog\Formatter\LineFormatter;
 use Monolog\Formatter\LogstashFormatter;
-use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\SlackHandler;
+use Monolog\Handler\StreamHandler;
 
 class Logger
 {
@@ -46,14 +46,14 @@ class Logger
         $this->slackChannel = $slackChannel;
         $this->slackUsername = $slackUsername;
 
-        $env = 'prod' == $env ? '' : '_'.$env;
-        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo/mo'.$env.'.log';
-        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo/mo_error'.$env.'.log';
-        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt/mt_success'.$env.'.log';
-        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt/mt_error'.$env.'.log';
+        $env = 'prod' == $env ? '' : '/'.$env;
+        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo'.$env.'/mo.log';
+        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo'.$env.'/mo_error.log';
+        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt'.$env.'/mt_success.log';
+        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt'.$env.'/mt_error.log';
 
         //Create sub-dir if it's not exist
-        $arr = ['mo', 'mt'];
+        $arr = ['mo', 'mt', 'mo/dev', 'mt/dev'];
         foreach ($arr as $item) {
             if (!is_dir($rootLogDir.'/'.$item)) {
                 mkdir($rootLogDir.'/'.$item, 0777, true);
@@ -61,24 +61,24 @@ class Logger
         }
     }
 
-    public function logMo($message, $data = [], $isNoticeSlack = false)
+    public function logMo($message, $data = [], $isNoticeSlack = false, $date = null)
     {
-        return $this->log(self::CHANNEL_MO, 'info', $message, $data, $isNoticeSlack);
+        return $this->log(self::CHANNEL_MO, 'info', $message, $data, $isNoticeSlack, $date);
     }
 
-    public function logMoError($message, $data = [], $isNoticeSlack = false)
+    public function logMoError($message, $data = [], $isNoticeSlack = false, $date = null)
     {
-        return $this->log(self::CHANNEL_MO_ERROR, 'alert', $message, $data, $isNoticeSlack);
+        return $this->log(self::CHANNEL_MO_ERROR, 'alert', $message, $data, $isNoticeSlack, $date);
     }
 
-    public function logMtSuccess($message, $data = [], $isNoticeSlack = false)
+    public function logMtSuccess($message, $data = [], $isNoticeSlack = false, $date = null)
     {
-        return $this->log(self::CHANNEL_MT_SUCCESS, 'info', $message, $data, $isNoticeSlack);
+        return $this->log(self::CHANNEL_MT_SUCCESS, 'info', $message, $data, $isNoticeSlack, $date);
     }
 
-    public function logMtError($message, $data = [], $isNoticeSlack = false)
+    public function logMtError($message, $data = [], $isNoticeSlack = false, $date = null)
     {
-        return $this->log(self::CHANNEL_MT_ERROR, 'alert', $message, $data, $isNoticeSlack);
+        return $this->log(self::CHANNEL_MT_ERROR, 'alert', $message, $data, $isNoticeSlack, $date);
     }
 
     public function noticeSlack($message, $data = [])
@@ -90,10 +90,10 @@ class Logger
         return $this;
     }
 
-    private function log($channel, $level, $message, $data = [], $isNoticeSlack = false)
+    private function log($channel, $level, $message, $data = [], $isNoticeSlack = false, $date = null)
     {
         /** @var \Monolog\Logger $logger */
-        $logger = $this->getLogger($channel);
+        $logger = $this->getLogger($channel, $date);
         $logger->$level($message, $data);
 
         if ($isNoticeSlack) {
@@ -104,18 +104,20 @@ class Logger
     }
 
     /**
-     * @param $channel
+     * @param string $channel
+     * @param string $date
      *
      * @return \Monolog\Logger
      */
-    private function getLogger($channel)
+    private function getLogger($channel, $date = null)
     {
         $log = new \Monolog\Logger($channel);
-        $maxFiles = 1000;
+        if (null == $date) {
+            $date = date('Y-m-d');
+        }
 
-        $handler = new RotatingFileHandler(self::$CHANNELS[$channel]['file'], $maxFiles, self::$CHANNELS[$channel]['level']);
+        $handler = new StreamHandler($this->getLogFileFormatted(self::$CHANNELS[$channel]['file'], $date), self::$CHANNELS[$channel]['level'], true, null);
         $handler->setFormatter(new LogstashFormatter('app', null, null, '', LogstashFormatter::V1));
-
         $log->pushHandler($handler);
 
         return $log;
@@ -142,5 +144,17 @@ class Logger
         $log->pushHandler($slackHandler);
 
         return $log;
+    }
+
+    private function getLogFileFormatted($file, $suffix = null)
+    {
+        if (null == $suffix) {
+            return $file;
+        }
+
+        $info = pathinfo($file);
+        $suffix = '-'.ltrim($suffix, '-_');
+
+        return $info['dirname'].'/'.$info['filename'].$suffix.'.'.$info['extension'];
     }
 }
