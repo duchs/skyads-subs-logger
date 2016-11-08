@@ -90,6 +90,70 @@ class Logger
         return $this;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getRootLogDir()
+    {
+        return $this->rootLogDir;
+    }
+
+    /**
+     * @param mixed $rootLogDir
+     */
+    public function setRootLogDir($rootLogDir)
+    {
+        $this->rootLogDir = $rootLogDir;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSlackUsername()
+    {
+        return $this->slackUsername;
+    }
+
+    /**
+     * @param mixed $slackUsername
+     */
+    public function setSlackUsername($slackUsername)
+    {
+        $this->slackUsername = $slackUsername;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSlackToken()
+    {
+        return $this->slackToken;
+    }
+
+    /**
+     * @param mixed $slackToken
+     */
+    public function setSlackToken($slackToken)
+    {
+        $this->slackToken = $slackToken;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSlackChannel()
+    {
+        return $this->slackChannel;
+    }
+
+    /**
+     * @param mixed $slackChannel
+     */
+    public function setSlackChannel($slackChannel)
+    {
+        $this->slackChannel = $slackChannel;
+    }
+
     private function log($channel, $level, $message, $data = [], $isNoticeSlack = false, $date = null)
     {
         /** @var \Monolog\Logger $logger */
