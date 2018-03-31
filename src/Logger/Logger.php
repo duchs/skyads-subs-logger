@@ -6,6 +6,7 @@ use Monolog\Formatter\LineFormatter;
 use Monolog\Formatter\LogstashFormatter;
 use Monolog\Handler\SlackHandler;
 use Monolog\Handler\StreamHandler;
+use Skyads\Permission;
 
 class Logger
 {
@@ -38,25 +39,39 @@ class Logger
     private $slackToken;
     private $slackChannel;
     private $slackUsername;
+    private $permissionMode = '';
+    private $permissionOwner = '';
+    private $permissionGroup = '';
 
-    public function __construct($rootLogDir, $slackToken, $slackChannel, $slackUsername, $env = 'prod')
-    {
+    public function __construct(
+        $rootLogDir,
+        $slackToken,
+        $slackChannel,
+        $slackUsername,
+        $env = 'prod',
+        $permissionMode = 0774,
+        $permissionOwner = 'nginx',
+        $permissionGroup = 'duc'
+    ) {
         $this->rootLogDir = $rootLogDir;
         $this->slackToken = $slackToken;
         $this->slackChannel = $slackChannel;
         $this->slackUsername = $slackUsername;
+        $this->permissionMode = $permissionMode;
+        $this->permissionOwner = $permissionOwner;
+        $this->permissionGroup = $permissionGroup;
 
-        $env = 'prod' == $env ? '' : '/'.$env;
-        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir.'/mo'.$env.'/mo.log';
-        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir.'/mo'.$env.'/mo_error.log';
-        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir.'/mt'.$env.'/mt_success.log';
-        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir.'/mt'.$env.'/mt_error.log';
+        $env = 'prod' == $env ? '' : '/' . $env;
+        self::$CHANNELS[self::CHANNEL_MO]['file'] = $rootLogDir . '/mo' . $env . '/mo.log';
+        self::$CHANNELS[self::CHANNEL_MO_ERROR]['file'] = $rootLogDir . '/mo' . $env . '/mo_error.log';
+        self::$CHANNELS[self::CHANNEL_MT_SUCCESS]['file'] = $rootLogDir . '/mt' . $env . '/mt_success.log';
+        self::$CHANNELS[self::CHANNEL_MT_ERROR]['file'] = $rootLogDir . '/mt' . $env . '/mt_error.log';
 
         //Create sub-dir if it's not exist
         $arr = ['mo', 'mt', 'mo/dev', 'mt/dev'];
         foreach ($arr as $item) {
-            if (!is_dir($rootLogDir.'/'.$item)) {
-                mkdir($rootLogDir.'/'.$item, 0777, true);
+            if (!is_dir($rootLogDir . '/' . $item)) {
+                mkdir($rootLogDir . '/' . $item, 0777, true);
             }
         }
     }
@@ -154,8 +169,63 @@ class Logger
         $this->slackChannel = $slackChannel;
     }
 
+    /**
+     * @return int|string
+     */
+    public function getPermissionMode()
+    {
+        return $this->permissionMode;
+    }
+
+    /**
+     * @param int|string $permissionMode
+     */
+    public function setPermissionMode($permissionMode)
+    {
+        $this->permissionMode = $permissionMode;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPermissionOwner()
+    {
+        return $this->permissionOwner;
+    }
+
+    /**
+     * @param string $permissionOwner
+     */
+    public function setPermissionOwner($permissionOwner)
+    {
+        $this->permissionOwner = $permissionOwner;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPermissionGroup()
+    {
+        return $this->permissionGroup;
+    }
+
+    /**
+     * @param string $permissionGroup
+     */
+    public function setPermissionGroup($permissionGroup)
+    {
+        $this->permissionGroup = $permissionGroup;
+    }
+
     private function log($channel, $level, $message, $data = [], $isNoticeSlack = false, $date = null)
     {
+        if (null == $date) {
+            $date = date('Y-m-d');
+        }
+
+        $file = $this->getLogFileFormatted(self::$CHANNELS[$channel]['file'], $date);
+        $this->setPermission($file);
+
         /** @var \Monolog\Logger $logger */
         $logger = $this->getLogger($channel, $date);
         $logger->$level($message, $data);
@@ -176,9 +246,6 @@ class Logger
     private function getLogger($channel, $date = null)
     {
         $log = new \Monolog\Logger($channel);
-        if (null == $date) {
-            $date = date('Y-m-d');
-        }
 
         $handler = new StreamHandler($this->getLogFileFormatted(self::$CHANNELS[$channel]['file'], $date), self::$CHANNELS[$channel]['level'], true, null);
         $handler->setFormatter(new LogstashFormatter('app', null, null, '', LogstashFormatter::V1));
@@ -217,8 +284,15 @@ class Logger
         }
 
         $info = pathinfo($file);
-        $suffix = '-'.ltrim($suffix, '-_');
+        $suffix = '-' . ltrim($suffix, '-_');
 
-        return $info['dirname'].'/'.$info['filename'].$suffix.'.'.$info['extension'];
+        return $info['dirname'] . '/' . $info['filename'] . $suffix . '.' . $info['extension'];
+    }
+
+    private function setPermission($file)
+    {
+        Permission::chownRecursive($file, $this->getPermissionOwner());
+        Permission::chmodRecursive($file, $this->getPermissionMode());
+        Permission::chgrpRecursive($file, $this->getPermissionGroup());
     }
 }
