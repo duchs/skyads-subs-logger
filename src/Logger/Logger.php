@@ -100,7 +100,11 @@ class Logger
     {
         /** @var \Monolog\Logger $logger */
         $logger = $this->getSlackLogger('slack');
-        $logger->alert($message, $data);
+        try {
+            $logger->alert($message, $data);
+        } catch (\Exception $ex) {
+            echo $ex->getMessage().PHP_EOL;
+        }
 
         return $this;
     }
